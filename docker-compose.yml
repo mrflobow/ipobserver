@@ -1,0 +1,10 @@
+version: "3.4"
+
+services:
+  ipobserver:
+    image: mrflobow/ipobserver:0.1
+    container_name: ipobserver
+    network_mode: host
+    env_file:
+      - .env
+    restart: always
