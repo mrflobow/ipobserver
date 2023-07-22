@@ -3,7 +3,7 @@ A Daemon Services to update the Public IP of your A Records in Digital Ocean.
 
 ## Build Instruction
 
-> docker build . -t mrflobow/ipobserver:0.1 --platform linux/amd64
+> docker build . -t mrflobow/ipobserver:0.2 --platform linux/amd64
 
 ## Docker Environment Variables
 
@@ -23,7 +23,14 @@ DOMAIN=mydomain.com
 SUBDOMAINS=@;www;vpn
 ```
 
+
 ## Limitations
 
-Will not work at Docker Desktop on Mac. The UPNP Discovery works under Linux.
-If you have a solution please contact me.
+
+## Release Notes 
+
+### 0.2 
+ - Removed miniupnp dependencies. Relies now on api.ipify.org , no longer requires host mode to run.
+ - Version 0.1 crashed periodically due to issues with upnp. Improved stability
+### 0.1 
+Initial release with miniupnp

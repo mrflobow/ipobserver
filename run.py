@@ -2,10 +2,8 @@ import time
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
-import miniupnpc
 from dotenv import load_dotenv
 import requests
-
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
@@ -16,12 +14,9 @@ subdomains = []
 auth_headers = {}
 
 def get_current_ip():
-    u = miniupnpc.UPnP()
-    u.discoverdelay = 200
-    u.discover()
-    u.selectigd()
-    logging.info('external ip address: {}'.format(u.externalipaddress()))
-    return u.externalipaddress()
+    ip = requests.get('https://api.ipify.org').content.decode('utf8')
+    logging.info('external ip address: {}'.format(ip))
+    return ip
 
 
 def update_dns():
