@@ -1,6 +1,5 @@
-import time
+import time,threading
 import os
-from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 from dotenv import load_dotenv
 import requests
@@ -9,9 +8,10 @@ logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
 #Global Vars
-domain = ''
-subdomains = []
-auth_headers = {}
+DOMAIN = ''
+SUBDOMAINS = []
+AUTH_HEADERS = {}
+INTERVAL = 60
 
 def get_current_ip():
     ip = requests.get('https://api.ipify.org').content.decode('utf8')
@@ -20,10 +20,12 @@ def get_current_ip():
 
 
 def update_dns():
-    global auth_headers, subdomains, domain
+    ctime = time.ctime()
+    logging.info(f"Starting JOB at {ctime}")
+
     ip = get_current_ip()
-    list_request_url = 'https://api.digitalocean.com/v2/domains/{}/records'.format(domain)
-    response = requests.get(list_request_url, headers=auth_headers)
+    list_request_url = 'https://api.digitalocean.com/v2/domains/{}/records'.format(DOMAIN)
+    response = requests.get(list_request_url, headers=AUTH_HEADERS)
     if response.status_code == 200:
         logging.info('Received Records List')
     else:
@@ -32,14 +34,14 @@ def update_dns():
 
     list_response = response.json()
 
-
-
-    for sub in subdomains:
+    for sub in SUBDOMAINS:
         record = next(filter(lambda n: True if n['name'] == sub and n['type'] == 'A' else False, list_response['domain_records']), None)
         if record is None:
             print(f'A Record not found for {sub}')
         else:
             update_a_record(record, ip)
+
+    threading.Timer(INTERVAL, update_dns).start()
 
 
 def update_a_record(record, ip):
@@ -49,8 +51,8 @@ def update_a_record(record, ip):
         logging.info(f'DNS Record {record_domain} has already IP {ip}')
         return
 
-    update_url = 'https://api.digitalocean.com/v2/domains/{}/records/{}'.format(domain, record_id)
-    response = requests.patch(update_url, json={'data': ip, 'type': 'A'}, headers=auth_headers)
+    update_url = 'https://api.digitalocean.com/v2/domains/{}/records/{}'.format(DOMAIN, record_id)
+    response = requests.patch(update_url, json={'data': ip, 'type': 'A'}, headers=AUTH_HEADERS)
 
     if response.status_code == 200:
         logging.info("Updated DNS record")
@@ -59,10 +61,8 @@ def update_a_record(record, ip):
         logging.error('HTTP Status Code: {}'.format(response.status_code))
         logging.error(response.content)
 
-
-
 def main():
-    global auth_headers, subdomains, domain
+    global AUTH_HEADERS, SUBDOMAINS, DOMAIN, INTERVAL
     load_dotenv()
 
     if os.getenv("API_TOKEN") is None:
@@ -74,30 +74,18 @@ def main():
         exit(1)
 
     if os.getenv("SUBDOMAINS") is None:
-        subdomains.append("@")
+        SUBDOMAINS.append("@")
     else:
         subd_str = os.getenv("SUBDOMAINS")
-        subdomains =subd_str.split(";")
+        SUBDOMAINS =subd_str.split(";")
 
     api_token = os.getenv("API_TOKEN")
-    auth_headers = {'Authorization': 'Bearer ' +api_token }
-    domain = os.getenv("DOMAIN")
-    interval = int(os.getenv("INTERVAL_M", "5"))
+    AUTH_HEADERS = {'Authorization': 'Bearer ' + api_token}
+    DOMAIN = os.getenv("DOMAIN")
+    INTERVAL = int(os.getenv("INTERVAL_M", "5"))*60
 
+    update_dns()
 
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(update_dns, 'interval', minutes=interval)
-    scheduler.start()
-
-    print('Press Ctrl+{0} to exit'.format('Break' if os.name == 'nt' else 'C'))
-
-    try:
-        # This is here to simulate application activity (which keeps the main thread alive).
-        while True:
-            time.sleep(2)
-    except (KeyboardInterrupt, SystemExit):
-        # Not strictly necessary if daemonic mode is enabled but should be done if possible
-        scheduler.shutdown()
 
 if __name__ == '__main__':
     main()
