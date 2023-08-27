@@ -3,7 +3,7 @@ A Daemon Services to update the Public IP of your A Records in Digital Ocean.
 
 ## Build Instruction
 
-> docker build . -t mrflobow/ipobserver:0.2 --platform linux/amd64
+> docker build . -t mrflobow/ipobserver:0.3 --platform linux/amd64
 
 ## Docker Environment Variables
 
@@ -28,6 +28,8 @@ SUBDOMAINS=@;www;vpn
 
 
 ## Release Notes 
+### 0.3
+ - Removed AppScheduler dependencies
 
 ### 0.2 
  - Removed miniupnp dependencies. Relies now on api.ipify.org , no longer requires host mode to run.

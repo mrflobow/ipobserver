@@ -41,8 +41,6 @@ def update_dns():
         else:
             update_a_record(record, ip)
 
-    threading.Timer(INTERVAL, update_dns).start()
-
 
 def update_a_record(record, ip):
     record_domain = record['name']
@@ -60,6 +58,7 @@ def update_a_record(record, ip):
         logging.error("Update failed")
         logging.error('HTTP Status Code: {}'.format(response.status_code))
         logging.error(response.content)
+
 
 def main():
     global AUTH_HEADERS, SUBDOMAINS, DOMAIN, INTERVAL
@@ -84,7 +83,11 @@ def main():
     DOMAIN = os.getenv("DOMAIN")
     INTERVAL = int(os.getenv("INTERVAL_M", "5"))*60
 
-    update_dns()
+    print("IP OBSERVER started")
+    ticker = threading.Event()
+    while not ticker.wait(INTERVAL):
+        update_dns()
+
 
 
 if __name__ == '__main__':
